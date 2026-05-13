@@ -4,38 +4,45 @@ declare(strict_types=1);
 
 namespace Dskripchenko\PhpPdfFontsLiberation;
 
+use Dskripchenko\PhpPdf\Font\FontProvider;
+use Dskripchenko\PhpPdf\Font\Ttf\TtfFile;
+
 /**
- * FontProvider implementation that bundles the Liberation font family.
+ * FontProvider implementation, bundling Liberation font family для
+ * использования в dskripchenko/php-pdf.
  *
- * **STUB — implementation lives in Phase 2 of dskripchenko/php-pdf**, when
- * the host library has the `FontProvider` interface and TTF subset
- * embedding logic to consume font bytes. Until then this class only
- * exposes the metadata layer:
+ * Поставляет 12 TTF файлов (3 family × 4 variant):
+ *   LiberationSans-{Regular,Bold,Italic,BoldItalic}.ttf
+ *   LiberationSerif-{Regular,Bold,Italic,BoldItalic}.ttf
+ *   LiberationMono-{Regular,Bold,Italic,BoldItalic}.ttf
  *
- *  - `bundledFonts(): array<string, string>` — map alias → absolute TTF path
- *  - `metricAlias(string): ?string` — resolve "Arial" → "LiberationSans", etc.
+ * Metric-compatible с Microsoft proprietary fonts:
+ *   LiberationSans  ↔ Arial / Helvetica
+ *   LiberationSerif ↔ Times New Roman / Times
+ *   LiberationMono  ↔ Courier New / Courier
  *
- * Bundled files (will be added in Phase 2 alongside the implementation):
+ * Resolver приходит к Liberation чем для proprietary имени:
+ *   $provider->resolve('Arial')        → LiberationSans-Regular
+ *   $provider->resolve('Times-Bold')   → LiberationSerif-Bold (если
+ *                                        suffix включён в имя)
  *
- *   assets/fonts/LiberationSans-Regular.ttf
- *   assets/fonts/LiberationSans-Bold.ttf
- *   assets/fonts/LiberationSans-Italic.ttf
- *   assets/fonts/LiberationSans-BoldItalic.ttf
- *   assets/fonts/LiberationSerif-Regular.ttf
- *   assets/fonts/LiberationSerif-Bold.ttf
- *   assets/fonts/LiberationSerif-Italic.ttf
- *   assets/fonts/LiberationSerif-BoldItalic.ttf
- *   assets/fonts/LiberationMono-Regular.ttf
- *   assets/fonts/LiberationMono-Bold.ttf
- *   assets/fonts/LiberationMono-Italic.ttf
- *   assets/fonts/LiberationMono-BoldItalic.ttf
+ * Однако resolve() ожидает full PostScript name (LiberationSans-Bold);
+ * для high-level family+variant lookup используй
+ * {@see \Dskripchenko\PhpPdf\Font\PdfFontResolver} который wraps
+ * provider и пробует variant suffix chain.
+ *
+ * Lazy load: TTF читается с диска только при первом resolve();
+ * кешируется в $cache между вызовами.
  *
  * @see https://github.com/liberationfonts/liberation-fonts (upstream)
  * @see ../OFL.txt (font license)
- * @see ../LICENSE (MIT for this code)
+ * @see ../LICENSE (MIT для этого кода)
  */
-final class LiberationFontProvider
+final class LiberationFontProvider implements FontProvider
 {
+    /** @var array<string, TtfFile|false> */
+    private array $cache = [];
+
     private string $assetsDir;
 
     public function __construct(?string $assetsDir = null)
@@ -43,11 +50,83 @@ final class LiberationFontProvider
         $this->assetsDir = $assetsDir ?? __DIR__.'/../assets/fonts';
     }
 
+    public function resolve(string $fontName): ?TtfFile
+    {
+        // Try exact resolved name first; if no file, retry with '-Regular'
+        // suffix (для bare family names типа 'Arial' → LiberationSans-Regular).
+        $primary = $this->aliasToLiberation($fontName);
+        $candidates = [$primary];
+        if (! str_contains($primary, '-')) {
+            $candidates[] = $primary.'-Regular';
+        }
+
+        foreach ($candidates as $name) {
+            if (array_key_exists($name, $this->cache)) {
+                if ($this->cache[$name] !== false) {
+                    return $this->cache[$name];
+                }
+
+                continue;
+            }
+            $path = $this->assetsDir.'/'.$name.'.ttf';
+            if (is_readable($path)) {
+                return $this->cache[$name] = TtfFile::fromFile($path);
+            }
+            $this->cache[$name] = false;
+        }
+
+        return null;
+    }
+
     /**
-     * Carta доступных TTF в bundle'е. Имя → absolute path.
+     * Поддерживает Microsoft-имена с variant suffix'ом:
+     *   Arial            → LiberationSans
+     *   Arial-Bold       → LiberationSans-Bold
+     *   Times New Roman-Italic → LiberationSerif-Italic
+     *   Courier New      → LiberationMono
+     */
+    private function aliasToLiberation(string $name): string
+    {
+        // Split на base + variant suffix.
+        $suffixes = ['-BoldItalic', '-Bold', '-Italic', '-Regular'];
+        $suffix = '';
+        $base = $name;
+        foreach ($suffixes as $s) {
+            if (str_ends_with($name, $s)) {
+                $suffix = $s;
+                $base = substr($name, 0, -strlen($s));
+                break;
+            }
+        }
+
+        $alias = $this->metricAlias($base);
+        $libBase = $alias ?? $base;
+
+        return $libBase.$suffix;
+    }
+
+    /**
+     * Резолв Microsoft-проприетарных имён в metric-compatible Liberation:
+     *   Arial             → LiberationSans
+     *   Times New Roman   → LiberationSerif
+     *   Courier New       → LiberationMono
      *
-     * Существование файлов на диске НЕ проверяется здесь; вызов идёт
-     * в Phase 2 когда host-библиотека реально пытается прочитать font.
+     * Возвращает null если имя — не Microsoft-alias (используется как
+     * есть).
+     */
+    public function metricAlias(string $msName): ?string
+    {
+        return match (strtolower(trim($msName))) {
+            'arial', 'helvetica', 'liberationsans' => 'LiberationSans',
+            'times new roman', 'times', 'liberationserif' => 'LiberationSerif',
+            'courier new', 'courier', 'liberationmono' => 'LiberationMono',
+            default => null,
+        };
+    }
+
+    /**
+     * Lookup-helper: возвращает map alias → absolute path для всех
+     * 12 bundled TTF (для debug/introspection).
      *
      * @return array<string, string>
      */
@@ -73,28 +152,5 @@ final class LiberationFontProvider
         }
 
         return $out;
-    }
-
-    /**
-     * Резолв Microsoft-проприетарных имён в metric-compatible Liberation:
-     *
-     *   Arial             → LiberationSans
-     *   Times New Roman   → LiberationSerif
-     *   Courier New       → LiberationMono
-     *
-     * Используется PDF-builder'ом при HTML-input'е где font-family указан
-     * как Arial / Times New Roman / Courier New — мы рендерим в Liberation
-     * с теми же метриками, layout совпадает с Word-документом.
-     *
-     * Возвращает null если имя не Microsoft-alias.
-     */
-    public function metricAlias(string $msName): ?string
-    {
-        return match (strtolower(trim($msName))) {
-            'arial', 'helvetica' => 'LiberationSans',
-            'times new roman', 'times' => 'LiberationSerif',
-            'courier new', 'courier' => 'LiberationMono',
-            default => null,
-        };
     }
 }
