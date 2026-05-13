@@ -1,0 +1,52 @@
+{
+    "name": "dskripchenko/php-pdf-fonts-liberation",
+    "description": "Liberation font family bundle for dskripchenko/php-pdf. Metric-compatible with Arial/Times New Roman/Courier New. SIL OFL 1.1 fonts + MIT wrapper.",
+    "type": "library",
+    "license": ["MIT", "OFL-1.1"],
+    "keywords": ["pdf", "fonts", "liberation", "ofl", "dskripchenko/php-pdf"],
+    "authors": [
+        {
+            "name": "Denis Skripchenko",
+            "email": "denskrp90@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dskripchenko\\PhpPdfFontsLiberation\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dskripchenko\\PhpPdfFontsLiberation\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse"
+    },
+    "extra": {
+        "fonts": {
+            "family": "Liberation",
+            "upstream-version": "2.1.5",
+            "upstream-url": "https://github.com/liberationfonts/liberation-fonts",
+            "license": "OFL-1.1",
+            "metric-compatibility": {
+                "LiberationSans": "Arial",
+                "LiberationSerif": "Times New Roman",
+                "LiberationMono": "Courier New"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
