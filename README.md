@@ -5,6 +5,7 @@ Liberation font family bundle for
 ships 12 TTFs (Sans / Serif / Mono × Regular / Bold / Italic /
 Bold Italic) and a ready-to-use `FontProvider` implementation.
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/dskripchenko/php-pdf-fonts-liberation/tests.yml?branch=main&label=tests&logo=github)](https://github.com/dskripchenko/php-pdf-fonts-liberation/actions/workflows/tests.yml)
 [![Packagist](https://img.shields.io/packagist/v/dskripchenko/php-pdf-fonts-liberation.svg)](https://packagist.org/packages/dskripchenko/php-pdf-fonts-liberation)
 [![License: MIT + OFL-1.1](https://img.shields.io/badge/license-MIT%20%2B%20OFL--1.1-brightgreen.svg)](#license)
 [![PHP](https://img.shields.io/badge/php-%5E8.2-blue.svg)](composer.json)
