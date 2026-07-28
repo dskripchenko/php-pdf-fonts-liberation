@@ -5,6 +5,13 @@ documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] — 2026-07-28
+
+### Changed
+- CI: tests workflow (PHP 8.2–8.5) and PHPStan configuration; Packagist
+  badges in the README. Font bundle itself is unchanged — Liberation
+  Fonts 2.1.5 under SIL OFL 1.1.
+
 ## [1.0.0] — 2026-05-15
 
 Initial release.
