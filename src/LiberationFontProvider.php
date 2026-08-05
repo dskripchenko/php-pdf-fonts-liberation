@@ -120,6 +120,27 @@ final class LiberationFontProvider implements FontProvider
             'arial', 'helvetica', 'liberationsans' => 'LiberationSans',
             'times new roman', 'times', 'liberationserif' => 'LiberationSerif',
             'courier new', 'courier', 'liberationmono' => 'LiberationMono',
+            default => $this->genericAlias($msName),
+        };
+    }
+
+    /**
+     * Родовые семейства CSS (`serif`, `sans-serif`, `monospace`) и их
+     * системные синонимы.
+     *
+     * Это не метрическое соответствие, а ответ на вопрос «дай шрифт
+     * такого рода»: набор из трёх семейств ровно эти три рода и покрывает.
+     * Без этого запрос `font-family: 'IBM Plex Mono', monospace` не
+     * находил ничего и печатался пропорциональным шрифтом — то есть
+     * последнее слово CSS-списка, которое обязано сработать всегда,
+     * не срабатывало никогда.
+     */
+    private function genericAlias(string $name): ?string
+    {
+        return match (strtolower(trim($name))) {
+            'serif', 'ui-serif' => 'LiberationSerif',
+            'sans-serif', 'ui-sans-serif', 'system-ui', '-apple-system', 'blinkmacsystemfont' => 'LiberationSans',
+            'monospace', 'ui-monospace', 'sfmono-regular', 'menlo', 'consolas' => 'LiberationMono',
             default => null,
         };
     }

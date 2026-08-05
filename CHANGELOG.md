@@ -5,6 +5,18 @@ documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-08-05
+
+### Added
+- **CSS generic families resolve to the bundled faces**: `serif`,
+  `sans-serif`, `monospace` and their system synonyms (`ui-monospace`,
+  `system-ui`, `menlo`, `consolas`, …). The last name in a CSS
+  `font-family` list is the one that has to work when nothing else does —
+  and it was the one that never did: `font-family: 'IBM Plex Mono',
+  monospace` resolved to nothing and printed in a proportional face. Three
+  bundled families cover exactly the three generic classes, so answering
+  them is what this provider is for.
+
 ## [1.0.1] — 2026-07-28
 
 ### Changed

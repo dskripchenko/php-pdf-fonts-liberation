@@ -72,6 +72,25 @@ final class LiberationFontProviderTest extends TestCase
     }
 
     #[Test]
+    public function generic_css_families_resolve(): void
+    {
+        // Последнее слово CSS-списка — родовое семейство, и сработать оно
+        // обязано всегда: `font-family: 'IBM Plex Mono', monospace` без
+        // этого печатался пропорциональным шрифтом.
+        $provider = new LiberationFontProvider;
+
+        self::assertSame('LiberationMono', $provider->metricAlias('monospace'));
+        self::assertSame('LiberationMono', $provider->metricAlias('ui-monospace'));
+        self::assertSame('LiberationSans', $provider->metricAlias('sans-serif'));
+        self::assertSame('LiberationSans', $provider->metricAlias('system-ui'));
+        self::assertSame('LiberationSerif', $provider->metricAlias('serif'));
+
+        self::assertNotNull($provider->resolve('monospace'));
+        self::assertNotNull($provider->resolve('sans-serif'));
+        self::assertNotNull($provider->resolve('serif'));
+    }
+
+    #[Test]
     public function resolver_chain_works_with_provider(): void
     {
         $resolver = new PdfFontResolver(new LiberationFontProvider);
