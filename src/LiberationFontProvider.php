@@ -8,35 +8,35 @@ use Dskripchenko\PhpPdf\Font\FontProvider;
 use Dskripchenko\PhpPdf\Font\Ttf\TtfFile;
 
 /**
- * FontProvider implementation, bundling Liberation font family для
- * использования в dskripchenko/php-pdf.
+ * A FontProvider implementation bundling the Liberation font family for use in
+ * dskripchenko/php-pdf.
  *
- * Поставляет 12 TTF файлов (3 family × 4 variant):
+ * It ships 12 TTF files (3 families × 4 variants):
  *   LiberationSans-{Regular,Bold,Italic,BoldItalic}.ttf
  *   LiberationSerif-{Regular,Bold,Italic,BoldItalic}.ttf
  *   LiberationMono-{Regular,Bold,Italic,BoldItalic}.ttf
  *
- * Metric-compatible с Microsoft proprietary fonts:
+ * Metric-compatible with the Microsoft proprietary fonts:
  *   LiberationSans  ↔ Arial / Helvetica
  *   LiberationSerif ↔ Times New Roman / Times
  *   LiberationMono  ↔ Courier New / Courier
  *
- * Resolver приходит к Liberation чем для proprietary имени:
+ * The resolver arrives at Liberation for a proprietary name:
  *   $provider->resolve('Arial')        → LiberationSans-Regular
- *   $provider->resolve('Times-Bold')   → LiberationSerif-Bold (если
- *                                        suffix включён в имя)
+ *   $provider->resolve('Times-Bold')   → LiberationSerif-Bold (when the suffix
+ *                                        is part of the name)
  *
- * Однако resolve() ожидает full PostScript name (LiberationSans-Bold);
- * для high-level family+variant lookup используй
- * {@see \Dskripchenko\PhpPdf\Font\PdfFontResolver} который wraps
- * provider и пробует variant suffix chain.
+ * resolve() does expect a full PostScript name (LiberationSans-Bold), though;
+ * for a high-level family+variant lookup use
+ * {@see \Dskripchenko\PhpPdf\Font\PdfFontResolver}, which wraps the provider and
+ * tries the variant suffix chain.
  *
- * Lazy load: TTF читается с диска только при первом resolve();
- * кешируется в $cache между вызовами.
+ * Lazy loading: a TTF is read from disk only on the first resolve() and is
+ * cached in $cache between the calls.
  *
  * @see https://github.com/liberationfonts/liberation-fonts (upstream)
  * @see ../OFL.txt (font license)
- * @see ../LICENSE (MIT для этого кода)
+ * @see ../LICENSE (MIT, for this code)
  */
 final class LiberationFontProvider implements FontProvider
 {
@@ -52,8 +52,9 @@ final class LiberationFontProvider implements FontProvider
 
     public function resolve(string $fontName): ?TtfFile
     {
-        // Try exact resolved name first; if no file, retry with '-Regular'
-        // suffix (для bare family names типа 'Arial' → LiberationSans-Regular).
+        // Try the exact resolved name first; if there is no file, retry with the
+        // '-Regular' suffix (for bare family names such as 'Arial' →
+        // LiberationSans-Regular).
         $primary = $this->aliasToLiberation($fontName);
         $candidates = [$primary];
         if (! str_contains($primary, '-')) {
@@ -79,7 +80,7 @@ final class LiberationFontProvider implements FontProvider
     }
 
     /**
-     * Поддерживает Microsoft-имена с variant suffix'ом:
+     * It supports the Microsoft names with a variant suffix:
      *   Arial            → LiberationSans
      *   Arial-Bold       → LiberationSans-Bold
      *   Times New Roman-Italic → LiberationSerif-Italic
@@ -87,7 +88,7 @@ final class LiberationFontProvider implements FontProvider
      */
     private function aliasToLiberation(string $name): string
     {
-        // Split на base + variant suffix.
+        // Split into the base and the variant suffix.
         $suffixes = ['-BoldItalic', '-Bold', '-Italic', '-Regular'];
         $suffix = '';
         $base = $name;
@@ -106,13 +107,14 @@ final class LiberationFontProvider implements FontProvider
     }
 
     /**
-     * Резолв Microsoft-проприетарных имён в metric-compatible Liberation:
+     * Resolving the Microsoft proprietary names into the metric-compatible
+     * Liberation ones:
      *   Arial             → LiberationSans
      *   Times New Roman   → LiberationSerif
      *   Courier New       → LiberationMono
      *
-     * Возвращает null если имя — не Microsoft-alias (используется как
-     * есть).
+     * Returns null when the name is not a Microsoft alias (it is then used as
+     * is).
      */
     public function metricAlias(string $msName): ?string
     {
@@ -125,15 +127,14 @@ final class LiberationFontProvider implements FontProvider
     }
 
     /**
-     * Родовые семейства CSS (`serif`, `sans-serif`, `monospace`) и их
-     * системные синонимы.
+     * The generic CSS families (`serif`, `sans-serif`, `monospace`) and their
+     * system synonyms.
      *
-     * Это не метрическое соответствие, а ответ на вопрос «дай шрифт
-     * такого рода»: набор из трёх семейств ровно эти три рода и покрывает.
-     * Без этого запрос `font-family: 'IBM Plex Mono', monospace` не
-     * находил ничего и печатался пропорциональным шрифтом — то есть
-     * последнее слово CSS-списка, которое обязано сработать всегда,
-     * не срабатывало никогда.
+     * This is not a metric correspondence but an answer to "give me a font of
+     * that kind": the set of three families covers exactly those three kinds.
+     * Without it the request `font-family: 'IBM Plex Mono', monospace` found
+     * nothing and printed with a proportional font — that is, the last word of a
+     * CSS list, the one that must always work, never worked at all.
      */
     private function genericAlias(string $name): ?string
     {
@@ -146,8 +147,8 @@ final class LiberationFontProvider implements FontProvider
     }
 
     /**
-     * Lookup-helper: возвращает map alias → absolute path для всех
-     * 12 bundled TTF (для debug/introspection).
+     * A lookup helper: returns a map of alias → absolute path for all 12 bundled
+     * TTFs (for debugging and introspection).
      *
      * @return array<string, string>
      */

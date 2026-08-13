@@ -74,9 +74,9 @@ final class LiberationFontProviderTest extends TestCase
     #[Test]
     public function generic_css_families_resolve(): void
     {
-        // Последнее слово CSS-списка — родовое семейство, и сработать оно
-        // обязано всегда: `font-family: 'IBM Plex Mono', monospace` без
-        // этого печатался пропорциональным шрифтом.
+        // The last word of a CSS list is the generic family, and it must always
+        // work: without this `font-family: 'IBM Plex Mono', monospace` printed
+        // with a proportional font.
         $provider = new LiberationFontProvider;
 
         self::assertSame('LiberationMono', $provider->metricAlias('monospace'));
