@@ -92,6 +92,16 @@ $fonts = new ChainedFontProvider([
 ]);
 ```
 
+### 填写已有表单
+
+自 php-pdf 1.10 起，`ExistingFormFiller` 会自动使用本包：当表单自带字体无法显示某个值（西里尔文、希腊文等）时，会根据字段字体选用相应的 Liberation 字体（Sans、Serif 或 Mono，常规或粗体）进行绘制。无需任何配置，安装本包即可。
+
+```php
+ExistingFormFiller::fromFile('template.pdf')
+    ->setValue('full_name', 'Иван Петров')   // 使用 Liberation Sans 绘制
+    ->toFile('filled.pdf');
+```
+
 ## 许可证
 
 本包中并存两种许可证：

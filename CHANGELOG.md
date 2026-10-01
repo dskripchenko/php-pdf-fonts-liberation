@@ -5,6 +5,13 @@ documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-10-01
+
+### Changed
+- README (all languages): php-pdf 1.10's `ExistingFormFiller` uses this
+  package automatically for form values the form's own fonts cannot show.
+  The font bundle and the provider are unchanged.
+
 ## [1.1.0] — 2026-08-05
 
 ### Added

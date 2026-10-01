@@ -101,6 +101,20 @@ $fonts = new ChainedFontProvider([
 ]);
 ```
 
+### Filling existing forms
+
+Since php-pdf 1.10, `ExistingFormFiller` picks this package up on its own:
+when a value cannot be shown with the form's own fonts (Cyrillic, Greek, …),
+it is drawn with the matching Liberation face — Sans, Serif or Mono, regular
+or bold, following the field's font. No configuration is needed; installing
+the package is enough.
+
+```php
+ExistingFormFiller::fromFile('template.pdf')
+    ->setValue('full_name', 'Иван Петров')   // drawn with Liberation Sans
+    ->toFile('filled.pdf');
+```
+
 ## License
 
 This package mixes two licenses:
