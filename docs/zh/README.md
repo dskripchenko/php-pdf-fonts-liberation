@@ -39,7 +39,9 @@ Liberation 字族与微软的专有字体**度量兼容**：按 Arial、Times Ne
 Courier New 排版的文字，换成对应的 Liberation 字体后换行位置保持一致。
 因此「DOCX → PDF」和「HTML 模板 → PDF」两条路径都能得到相同的分页结果。
 
-字形覆盖：完整拉丁字母（西欧与东欧）、西里尔、希腊、希伯来、阿拉伯，以及天城文基础字符。
+字形覆盖：拉丁字母（西欧与东欧、土耳其语、越南语）、西里尔、希腊与希伯来字母。
+不含阿拉伯文、印度系文字和 CJK：如需这些文字，请通过 `DirectoryFontProvider`
+添加包含它们的字体（例如 Noto）。
 
 ## 安装
 
@@ -54,13 +56,26 @@ PHP 8.2+，不需要任何原生扩展。
 ```php
 use Dskripchenko\PhpPdf\Build\DocumentBuilder;
 use Dskripchenko\PhpPdf\Layout\Engine;
+use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
+
+$fonts = new LiberationFontProvider;
 
 $bytes = DocumentBuilder::new()
     ->heading(1, '年度报告')
     ->paragraph('Тысяча красивых символов с правильным кернингом.')
-    ->toBytes(new Engine(fontProvider: new LiberationFontProvider));
+    ->toBytes(new Engine(
+        defaultFont: new PdfFont($fonts->resolve('LiberationSans')),
+        boldFont: new PdfFont($fonts->resolve('LiberationSans-Bold')),
+        italicFont: new PdfFont($fonts->resolve('LiberationSans-Italic')),
+        boldItalicFont: new PdfFont($fonts->resolve('LiberationSans-BoldItalic')),
+        fontProvider: $fonts,   // 用于指定了字族的文本：Arial、Times New Roman……
+    ));
 ```
+
+`defaultFont` 及其粗体／斜体字形用于没有自身字族的文本；缺少它们时，引擎会回退到
+标准 14 字体中的 Helvetica，而它不含西里尔字母。`fontProvider` 负责指定了字族的文本——
+HTML 中的 `font-family: "Times New Roman"`、`RunStyle` 中的 `fontFamily`。
 
 ### 微软字体名的自动映射
 
@@ -78,18 +93,19 @@ $bytes = DocumentBuilder::new()
 
 ### 与系统字体或自有字体搭配
 
-用 `Dskripchenko\PhpPdf\Font\ChainedFontProvider` 把多个 provider 串起来，
-让 Liberation 作为缺字时的兜底：
+用 `Dskripchenko\PhpPdf\Font\ChainedFontProvider` 把多个 provider 串起来。
+每个字体名按顺序查找，第一个拥有该字体的 provider 胜出——因此你自己的字族排在前面，
+其余的（`Arial`、`Times New Roman` 等）交给 Liberation：
 
 ```php
 use Dskripchenko\PhpPdf\Font\ChainedFontProvider;
 use Dskripchenko\PhpPdf\Font\DirectoryFontProvider;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
 
-$fonts = new ChainedFontProvider([
+$fonts = new ChainedFontProvider(
     new DirectoryFontProvider(__DIR__.'/my-brand-fonts'),  // 先查这里
-    new LiberationFontProvider,                            // 兜底
-]);
+    new LiberationFontProvider,                            // 然后是 Liberation
+);
 ```
 
 ### 填写已有表单
@@ -101,6 +117,17 @@ ExistingFormFiller::fromFile('template.pdf')
     ->setValue('full_name', 'Иван Петров')   // 使用 Liberation Sans 绘制
     ->toFile('filled.pdf');
 ```
+
+## php-pdf 家族
+
+| 包 | 新增能力 |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | 核心：HTML（含 CSS）或构建器生成 PDF，读取、合并、填写表单、签名与验证。 |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Laravel 桥接：Blade 视图直接生成 PDF、`response()->pdf()`、按配置签名。 |
+| **php-pdf-fonts-liberation**（本包） | Liberation Sans、Serif 与 Mono，度量上与 Arial、Times New Roman 和 Courier New 兼容（OFL 许可，独立于 MIT 核心之外）。 |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | 使用服务器上 CryptoPro CSP 中的密钥签名：GOST R 34.10-2012，俄罗斯合格电子签名。 |
+| [php-pdf-pkcs11](https://github.com/dskripchenko/php-pdf-pkcs11) | 通过 PKCS#11 使用 HSM、智能卡或 USB 令牌上的密钥签名。 |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | 使用 AWS KMS、Google Cloud KMS 或 Azure Key Vault 中的密钥签名。 |
 
 ## 许可证
 

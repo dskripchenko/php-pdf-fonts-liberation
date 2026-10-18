@@ -44,8 +44,10 @@ gesetzt wurde, bricht mit dem jeweiligen Liberation-Pendant an denselben Stellen
 um. Deshalb liefern die Wege „DOCX → PDF“ und „HTML-Vorlage → PDF“ denselben
 Seitenumbruch.
 
-Zeichenabdeckung: vollständiges Latein (west- und osteuropäisch), Kyrillisch,
-Griechisch, Hebräisch, Arabisch sowie Grundzüge von Devanagari.
+Zeichenabdeckung: Latein (west- und osteuropäisch, Türkisch,
+Vietnamesisch), Kyrillisch, Griechisch und Hebräisch. Arabisch, indische Schriften
+und CJK fehlen: Dafür eine Schrift, die sie enthält (etwa Noto), über einen
+`DirectoryFontProvider` hinzufügen.
 
 ## Installation
 
@@ -60,13 +62,27 @@ PHP 8.2+. Es werden keine nativen Erweiterungen benötigt.
 ```php
 use Dskripchenko\PhpPdf\Build\DocumentBuilder;
 use Dskripchenko\PhpPdf\Layout\Engine;
+use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
+
+$fonts = new LiberationFontProvider;
 
 $bytes = DocumentBuilder::new()
     ->heading(1, 'Jahresbericht')
     ->paragraph('Tausend schöne Zeichen mit sauberem Kerning.')
-    ->toBytes(new Engine(fontProvider: new LiberationFontProvider));
+    ->toBytes(new Engine(
+        defaultFont: new PdfFont($fonts->resolve('LiberationSans')),
+        boldFont: new PdfFont($fonts->resolve('LiberationSans-Bold')),
+        italicFont: new PdfFont($fonts->resolve('LiberationSans-Italic')),
+        boldItalicFont: new PdfFont($fonts->resolve('LiberationSans-BoldItalic')),
+        fontProvider: $fonts,   // für Runs, die eine Familie nennen: Arial, Times New Roman…
+    ));
 ```
+
+`defaultFont` und seine fetten / kursiven Schnitte setzen Text ohne eigene
+Familie; ohne sie fällt die Engine auf Helvetica aus den 14 Standardschriften
+zurück, die kein Kyrillisch hat. `fontProvider` ist für Runs zuständig, die eine
+Familie nennen — `font-family: "Times New Roman"` in HTML, `fontFamily` in einem `RunStyle`.
 
 ### Auflösung von Microsoft-Namen
 
@@ -85,18 +101,20 @@ Eine Vorlage mit `font-family: "Times New Roman"` funktioniert sofort.
 
 ### Zusammen mit System- oder eigenen Schriften
 
-Mit `Dskripchenko\PhpPdf\Font\ChainedFontProvider` lassen sich Provider stapeln,
-sodass Liberation als Rückfallebene für fehlende Glyphen dient:
+Mit `Dskripchenko\PhpPdf\Font\ChainedFontProvider` lassen sich Provider stapeln.
+Jeder Schriftname wird der Reihe nach gesucht, und der erste Provider, der ihn
+kennt, gewinnt — eigene Familien kommen also zuerst, und Liberation übernimmt
+den Rest: `Arial`, `Times New Roman` und Ähnliche:
 
 ```php
 use Dskripchenko\PhpPdf\Font\ChainedFontProvider;
 use Dskripchenko\PhpPdf\Font\DirectoryFontProvider;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
 
-$fonts = new ChainedFontProvider([
+$fonts = new ChainedFontProvider(
     new DirectoryFontProvider(__DIR__.'/my-brand-fonts'),  // wird zuerst befragt
-    new LiberationFontProvider,                            // Rückfallebene
-]);
+    new LiberationFontProvider,                            // dann Liberation
+);
 ```
 
 ### Bestehende Formulare ausfüllen
@@ -112,6 +130,17 @@ ExistingFormFiller::fromFile('template.pdf')
     ->setValue('full_name', 'Иван Петров')   // mit Liberation Sans gezeichnet
     ->toFile('filled.pdf');
 ```
+
+## Die php-pdf-Familie
+
+| Paket | Was es hinzufügt |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | Der Kern: HTML mit CSS oder ein Builder zu PDF, Lesen, Zusammenführen, Formulare ausfüllen, Signieren und Validieren. |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Laravel-Brücke: eine Blade-View direkt als PDF, `response()->pdf()`, Signieren per Konfiguration. |
+| **php-pdf-fonts-liberation** (dieses Paket) | Liberation Sans, Serif und Mono, metrisch kompatibel mit Arial, Times New Roman und Courier New (OFL, aus dem MIT-Kern herausgehalten). |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | Signiert mit einem Schlüssel in CryptoPro CSP auf dem Server: GOST R 34.10-2012, russische qualifizierte Signaturen. |
+| [php-pdf-pkcs11](https://github.com/dskripchenko/php-pdf-pkcs11) | Signiert mit einem Schlüssel auf einem HSM, einer Smartcard oder einem USB-Token über PKCS#11. |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | Signiert mit einem Schlüssel in AWS KMS, Google Cloud KMS oder Azure Key Vault. |
 
 ## Lizenz
 
