@@ -43,8 +43,10 @@ Microsoft: текст, свёрстанный под Arial, Times New Roman ил
 сценарии «DOCX → PDF» и «HTML-шаблон → PDF» дают одинаковую разбивку на
 страницы.
 
-Покрытие символов: полная латиница (западная и восточноевропейская), кириллица,
-греческий, иврит, арабский и основы деванагари.
+Покрытие символов: латиница (западно- и восточноевропейская, турецкая,
+вьетнамская), кириллица, греческий и иврит. Арабского, индийских письменностей
+и CJK нет: для них добавьте шрифт, где они есть (например, Noto), через
+`DirectoryFontProvider`.
 
 ## Установка
 
@@ -59,13 +61,27 @@ PHP 8.2+. Расширений не требуется.
 ```php
 use Dskripchenko\PhpPdf\Build\DocumentBuilder;
 use Dskripchenko\PhpPdf\Layout\Engine;
+use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
+
+$fonts = new LiberationFontProvider;
 
 $bytes = DocumentBuilder::new()
     ->heading(1, 'Годовой отчёт')
     ->paragraph('Тысяча красивых символов с правильным кернингом.')
-    ->toBytes(new Engine(fontProvider: new LiberationFontProvider));
+    ->toBytes(new Engine(
+        defaultFont: new PdfFont($fonts->resolve('LiberationSans')),
+        boldFont: new PdfFont($fonts->resolve('LiberationSans-Bold')),
+        italicFont: new PdfFont($fonts->resolve('LiberationSans-Italic')),
+        boldItalicFont: new PdfFont($fonts->resolve('LiberationSans-BoldItalic')),
+        fontProvider: $fonts,   // для фрагментов с явным семейством: Arial, Times New Roman…
+    ));
 ```
+
+`defaultFont` и его жирное / курсивное начертания задают шрифт текста без
+собственного семейства; без них движок откатывается на Helvetica из базовых 14,
+в которой нет кириллицы. `fontProvider` отвечает за фрагменты с явно указанным
+семейством — `font-family: "Times New Roman"` в HTML, `fontFamily` в `RunStyle`.
 
 ### Подстановка имён Microsoft
 
@@ -84,18 +100,20 @@ $bytes = DocumentBuilder::new()
 
 ### Вместе с системными и собственными шрифтами
 
-`Dskripchenko\PhpPdf\Font\ChainedFontProvider` выстраивает провайдеры в цепочку,
-и Liberation становится запасным вариантом для недостающих знаков:
+`Dskripchenko\PhpPdf\Font\ChainedFontProvider` выстраивает провайдеры в цепочку.
+Каждое имя шрифта ищется по порядку, и побеждает первый провайдер, у которого
+оно есть, — поэтому ваши семейства идут первыми, а Liberation отвечает за
+остальное: `Arial`, `Times New Roman` и подобные:
 
 ```php
 use Dskripchenko\PhpPdf\Font\ChainedFontProvider;
 use Dskripchenko\PhpPdf\Font\DirectoryFontProvider;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
 
-$fonts = new ChainedFontProvider([
+$fonts = new ChainedFontProvider(
     new DirectoryFontProvider(__DIR__.'/my-brand-fonts'),  // смотрим сюда первым делом
-    new LiberationFontProvider,                            // запасной вариант
-]);
+    new LiberationFontProvider,                            // затем Liberation
+);
 ```
 
 ### Заполнение готовых форм
@@ -111,6 +129,17 @@ ExistingFormFiller::fromFile('template.pdf')
     ->setValue('full_name', 'Иван Петров')   // рисуется Liberation Sans
     ->toFile('filled.pdf');
 ```
+
+## Семейство php-pdf
+
+| Пакет | Что добавляет |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | Ядро: HTML с CSS или билдер → PDF, чтение, слияние, заполнение форм, подпись и проверка. |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Мост для Laravel: Blade-шаблон сразу в PDF, `response()->pdf()`, подпись по конфигу. |
+| **php-pdf-fonts-liberation** (этот пакет) | Liberation Sans, Serif и Mono, метрически совместимые с Arial, Times New Roman и Courier New (OFL, вынесены из MIT-ядра). |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | Подпись ключом в КриптоПро CSP на сервере: ГОСТ Р 34.10-2012, российская КЭП. |
+| [php-pdf-pkcs11](https://github.com/dskripchenko/php-pdf-pkcs11) | Подпись ключом на HSM, смарт-карте или USB-токене через PKCS#11. |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | Подпись ключом в AWS KMS, Google Cloud KMS или Azure Key Vault. |
 
 ## Лицензия
 

@@ -45,8 +45,10 @@ Courier New will render with the same line wrapping using the
 Liberation equivalent, so DOCX-input → PDF and HTML-templates → PDF
 workflows produce identical pagination.
 
-Glyph coverage: full Latin (Western and Eastern European), Cyrillic,
-Greek, Hebrew, Arabic, and Devanagari basics.
+Glyph coverage: Latin (Western and Eastern European, Turkish,
+Vietnamese), Cyrillic, Greek and Hebrew. There is no Arabic, Indic or CJK:
+for those, add a font that has them (Noto, for one) with a
+`DirectoryFontProvider`.
 
 ## Installation
 
@@ -61,13 +63,27 @@ PHP 8.2+. No native extensions required.
 ```php
 use Dskripchenko\PhpPdf\Build\DocumentBuilder;
 use Dskripchenko\PhpPdf\Layout\Engine;
+use Dskripchenko\PhpPdf\Pdf\PdfFont;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
+
+$fonts = new LiberationFontProvider;
 
 $bytes = DocumentBuilder::new()
     ->heading(1, 'Annual Report')
     ->paragraph('Тысяча красивых символов с правильным кернингом.')
-    ->toBytes(new Engine(fontProvider: new LiberationFontProvider));
+    ->toBytes(new Engine(
+        defaultFont: new PdfFont($fonts->resolve('LiberationSans')),
+        boldFont: new PdfFont($fonts->resolve('LiberationSans-Bold')),
+        italicFont: new PdfFont($fonts->resolve('LiberationSans-Italic')),
+        boldItalicFont: new PdfFont($fonts->resolve('LiberationSans-BoldItalic')),
+        fontProvider: $fonts,   // for runs that name a family: Arial, Times New Roman…
+    ));
 ```
+
+`defaultFont` and its bold / italic faces set the text with no family of
+its own; without them the engine falls back to the base-14 Helvetica, which
+has no Cyrillic. `fontProvider` answers for runs that name a family —
+`font-family: "Times New Roman"` in HTML, `fontFamily` in a `RunStyle`.
 
 ### Microsoft name aliasing
 
@@ -87,18 +103,20 @@ the box.
 
 ### Combining with system or custom fonts
 
-Use `Dskripchenko\PhpPdf\Font\ChainedFontProvider` to stack providers
-so Liberation acts as a fallback for missing glyphs:
+Use `Dskripchenko\PhpPdf\Font\ChainedFontProvider` to stack providers.
+Each font name is looked up in order and the first provider that has it
+wins, so your own families come first and Liberation answers for the
+rest — `Arial`, `Times New Roman` and the like:
 
 ```php
 use Dskripchenko\PhpPdf\Font\ChainedFontProvider;
 use Dskripchenko\PhpPdf\Font\DirectoryFontProvider;
 use Dskripchenko\PhpPdfFontsLiberation\LiberationFontProvider;
 
-$fonts = new ChainedFontProvider([
+$fonts = new ChainedFontProvider(
     new DirectoryFontProvider(__DIR__.'/my-brand-fonts'),  // checked first
-    new LiberationFontProvider,                            // fallback
-]);
+    new LiberationFontProvider,                            // then Liberation
+);
 ```
 
 ### Filling existing forms
@@ -114,6 +132,17 @@ ExistingFormFiller::fromFile('template.pdf')
     ->setValue('full_name', 'Иван Петров')   // drawn with Liberation Sans
     ->toFile('filled.pdf');
 ```
+
+## The php-pdf family
+
+| Package | What it adds |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | The core: HTML with CSS or a builder to PDF, read, merge, fill forms, sign and validate. |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Laravel bridge: a Blade view straight to PDF, `response()->pdf()`, signing from config. |
+| **php-pdf-fonts-liberation** (this package) | Liberation Sans, Serif and Mono, metric-compatible with Arial, Times New Roman and Courier New (OFL, kept out of the MIT core). |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | Signs with a key in CryptoPro CSP on the server: GOST R 34.10-2012, Russian qualified signatures. |
+| [php-pdf-pkcs11](https://github.com/dskripchenko/php-pdf-pkcs11) | Signs with a key on an HSM, a smart card or a USB token, through PKCS#11. |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | Signs with a key in AWS KMS, Google Cloud KMS or Azure Key Vault. |
 
 ## License
 
